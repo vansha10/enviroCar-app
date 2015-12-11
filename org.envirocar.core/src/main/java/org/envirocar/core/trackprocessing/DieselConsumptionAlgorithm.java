@@ -65,7 +65,7 @@ public class DieselConsumptionAlgorithm implements ConsumptionAlgorithm {
          */
         Double lambdaV = measurement.getProperty(LAMBDA_VOLTAGE);
 
-        if (lambdaV > 1.1) {
+        if (lambdaV < 1.0) {
             //TODO check with TU-BS - seems to happen very often
             LOG.info("Lambda Voltage > 1.1; this might be no consumption at all?");
             return 0.0;
@@ -79,7 +79,7 @@ public class DieselConsumptionAlgorithm implements ConsumptionAlgorithm {
         /**
          * calculate mass fuel flow in kg/h
          */
-        double massFuelFlow =  ((mafKG / lambdaER) /  MINIMUM_REQUIRED_AIR) * 3600;
+        double massFuelFlow =  ((mafKG / lambdaV) /  MINIMUM_REQUIRED_AIR) * 3600;
 
         /**
          * calculate volumetric fuel flow in l/h
