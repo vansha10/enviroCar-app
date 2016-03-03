@@ -48,6 +48,8 @@ public class DriveDeckSportAdapter extends AsyncAdapter {
     private int connectingMessageCount;
     private int totalResponseCount;
     private boolean supportForLambdaVoltage = true;
+    private int pidCount = 1;
+    private int processResponses = 0;
 
     private static enum Protocol {
         CAN11500, CAN11250, CAN29500, CAN29250, KWP_SLOW, KWP_FAST, ISO9141
@@ -90,6 +92,7 @@ public class DriveDeckSportAdapter extends AsyncAdapter {
         }
 
         this.cycleCommand = new CycleCommand(pidList);
+        this.pidCount = pidList.size();
         logger.info("Static Cycle Command: " + Base64.encodeToString(this.cycleCommand.getOutputBytes(), Base64.DEFAULT));
         this.pendingCommands.offer(this.cycleCommand);
 
@@ -253,6 +256,21 @@ public class DriveDeckSportAdapter extends AsyncAdapter {
 
     private DataResponse parsePIDResponse(String pid, byte[] rawBytes) throws InvalidCommandResponseException, NoDataReceivedException,
             UnmatchedResponseException, AdapterSearchingException {
+
+        /*
+         * let the first <pidCount> responses pass and then skip
+         * the next 9 iterations
+         */
+        if (processResponses >= pidCount && processResponses < pidCount * 10) {
+            return null;
+        }
+        /*
+         * reset to 0, so again the first <pidCount> responses pass
+         */
+        else if (processResponses >= pidCount * 10) {
+            processResponses = 0;
+        }
+        this.processResponses++;
 
         logger.verbose(String.format("PID Response: %s; %s", pid, Base64.encodeToString(rawBytes, Base64.DEFAULT)).trim());
 
