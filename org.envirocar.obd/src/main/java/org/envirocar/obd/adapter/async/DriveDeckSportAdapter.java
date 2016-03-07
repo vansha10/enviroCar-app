@@ -261,16 +261,16 @@ public class DriveDeckSportAdapter extends AsyncAdapter {
          * let the first <pidCount> responses pass and then skip
          * the next 9 iterations
          */
-        if (processResponses >= pidCount && processResponses < pidCount * 10) {
+        this.processResponses++;
+        if (processResponses > pidCount && processResponses <= pidCount * 10) {
             return null;
         }
         /*
          * reset to 0, so again the first <pidCount> responses pass
          */
-        else if (processResponses >= pidCount * 10) {
-            processResponses = 0;
+        else if (processResponses > pidCount * 10) {
+            processResponses = 1;
         }
-        this.processResponses++;
 
         logger.verbose(String.format("PID Response: %s; %s", pid, Base64.encodeToString(rawBytes, Base64.DEFAULT)).trim());
 
