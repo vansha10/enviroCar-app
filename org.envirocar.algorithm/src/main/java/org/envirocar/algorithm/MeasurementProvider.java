@@ -11,7 +11,7 @@ import rx.Observable;
  */
 public interface MeasurementProvider {
 
-    Observable.Operator<Measurement, PropertyKeyEvent> getOBDValueConsumer();
+    Observable.Operator<Measurement, PropertyKeyEvent> getOBDValueConsumer(long samplingRate);
 
     Observable<Measurement> measurements(long samplingRate);
 

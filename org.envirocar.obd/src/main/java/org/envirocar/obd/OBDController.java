@@ -261,7 +261,6 @@ public class OBDController {
                 .observeOn(OBDSchedulers.scheduler())
                 .timeout(MAX_NODATA_TIME, TimeUnit.MILLISECONDS)
                 .subscribe(getCollectingDataSubscriber());
-
     }
 
     private Subscriber<DataResponse> getCollectingDataSubscriber() {

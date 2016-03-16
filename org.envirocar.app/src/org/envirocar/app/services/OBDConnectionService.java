@@ -43,9 +43,6 @@ import org.envirocar.core.events.NewMeasurementEvent;
 import org.envirocar.core.events.gps.GpsLocationChangedEvent;
 import org.envirocar.core.events.gps.GpsSatelliteFix;
 import org.envirocar.core.events.gps.GpsSatelliteFixEvent;
-import org.envirocar.core.exception.FuelConsumptionException;
-import org.envirocar.core.exception.NoMeasurementsException;
-import org.envirocar.core.exception.UnsupportedFuelTypeException;
 import org.envirocar.core.injection.BaseInjectorService;
 import org.envirocar.core.logging.Logger;
 import org.envirocar.core.trackprocessing.AbstractCalculatedMAFAlgorithm;
@@ -54,7 +51,6 @@ import org.envirocar.core.trackprocessing.ConsumptionAlgorithm;
 import org.envirocar.core.utils.CarUtils;
 import org.envirocar.obd.ConnectionListener;
 import org.envirocar.obd.OBDController;
-import org.envirocar.obd.OBDSchedulers;
 import org.envirocar.obd.bluetooth.BluetoothSocketWrapper;
 import org.envirocar.obd.events.BluetoothServiceStateChangedEvent;
 import org.envirocar.obd.events.SpeedUpdateEvent;
@@ -329,26 +325,15 @@ public class OBDConnectionService extends BaseInjectorService {
                     }
                 }
             }, bus);
+
+            Long samplingRate = PreferencesHandler.getSamplingRate(getApplicationContext()) * 1000;
             this.mOBDController.getObservable()
-                    .subscribeOn(OBDSchedulers.scheduler())
-                    .observeOn(OBDSchedulers.scheduler())
-                    .lift(measurementProvider.getOBDValueConsumer())
-                    .subscribe(new Subscriber<Measurement>() {
-                        @Override
-                        public void onCompleted() {
-                            LOG.info("damn");
-                        }
-
-                        @Override
-                        public void onError(Throwable e) {
-                            LOG.info("damn2");
-                        }
-
-                        @Override
-                        public void onNext(Measurement measurement) {
-                            LOG.info("damn3");
-                        }
-                    });
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(Schedulers.io())
+                    .lift(measurementProvider.getOBDValueConsumer(samplingRate))
+                    .lift(mafAlgorithm)
+                    .lift(consumptionAlgorithm)
+                    .subscribe(getMeasurementSubscriber());
         } catch (IOException e) {
             LOG.warn(e.getMessage(), e);
             stopSelf();
@@ -398,12 +383,12 @@ public class OBDConnectionService extends BaseInjectorService {
 
 
     private void subscribeForMeasurements() {
-        // this is the first access to the measurement objects push it further
-        Long samplingRate = PreferencesHandler.getSamplingRate(getApplicationContext()) * 1000;
-        mMeasurementSubscription = measurementProvider.measurements(samplingRate)
-                .subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.io())
-                .subscribe(getMeasurementSubscriber());
+//        // this is the first access to the measurement objects push it further
+//        Long samplingRate = PreferencesHandler.getSamplingRate(getApplicationContext()) * 1000;
+//        mMeasurementSubscription = measurementProvider.measurements(samplingRate)
+//                .subscribeOn(Schedulers.io())
+//                .observeOn(Schedulers.io())
+//                .subscribe(getMeasurementSubscriber());
     }
 
     private Subscriber<Measurement> getMeasurementSubscriber() {
@@ -434,28 +419,6 @@ public class OBDConnectionService extends BaseInjectorService {
             @Override
             public void onNext(Measurement measurement) {
                 LOG.info("onNNNNENEEXT()");
-                try {
-                    if (!measurement.hasProperty(Measurement.PropertyKey.MAF)) {
-                        try {
-                            measurement.setProperty(Measurement.PropertyKey
-                                    .CALCULATED_MAF, mafAlgorithm.calculateMAF(measurement));
-                        } catch (NoMeasurementsException e) {
-                            LOG.warn(e.getMessage());
-                        }
-                    }
-
-                    if (consumptionAlgorithm != null) {
-                        double consumption = consumptionAlgorithm.calculateConsumption(measurement);
-                        double co2 = consumptionAlgorithm.calculateCO2FromConsumption(consumption);
-                        measurement.setProperty(Measurement.PropertyKey.CONSUMPTION, consumption);
-                        measurement.setProperty(Measurement.PropertyKey.CO2, co2);
-                    }
-                } catch (FuelConsumptionException e) {
-                    LOG.warn(e.getMessage());
-                } catch (UnsupportedFuelTypeException e) {
-                    LOG.warn(e.getMessage());
-                }
-
                 measurementPublisher.onNext(measurement);
                 bus.post(new NewMeasurementEvent(measurement));
             }

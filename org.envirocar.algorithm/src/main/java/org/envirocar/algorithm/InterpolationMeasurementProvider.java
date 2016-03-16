@@ -17,9 +17,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
+import rx.Scheduler;
 import rx.Subscriber;
+import rx.functions.Action0;
+import rx.schedulers.Schedulers;
 
 /**
  * TODO JavaDoc
@@ -33,10 +37,41 @@ public class InterpolationMeasurementProvider extends AbstractMeasurementProvide
     private long lastTimestampToBeConsidered;
 
     @Override
-    public Observable.Operator<Measurement, PropertyKeyEvent> getOBDValueConsumer() {
+    public Observable.Operator<Measurement, PropertyKeyEvent> getOBDValueConsumer(long samplingRate) {
         return subscriber -> new Subscriber<PropertyKeyEvent>() {
+            private final Scheduler.Worker producerWorker = Schedulers.io().createWorker();
+
+            private final Action0 measurementProducer = new Action0() {
+                @Override
+                public void call() {
+                    if (subscriber.isUnsubscribed()) {
+                        LOG.info("measurementProducer: subscriber had been unsubscribed. Aborting" +
+                                " the production of measurements");
+                        return;
+                    }
+
+                    Measurement m = createMeasurement();
+                    if (m != null && m.getLatitude() != null && m.getLongitude() != null
+                            && m.hasProperty(Measurement.PropertyKey.SPEED)) {
+                        subscriber.onNext(m);
+                        producerWorker.schedule(measurementProducer,
+                                samplingRate, TimeUnit.MILLISECONDS);
+                    } else {
+                        producerWorker.schedule(measurementProducer, 1000, TimeUnit.MILLISECONDS);
+                    }
+                }
+            };
+
+            @Override
+            public void onStart() {
+                LOG.info("getOBDValueConsumer.onStart(): Scheduling measurement producer task.");
+                subscriber.onStart();
+                producerWorker.schedule(measurementProducer, samplingRate, TimeUnit.MILLISECONDS);
+            }
+
             @Override
             public void onCompleted() {
+                LOG.info("getOBDValueConsumer.onCompleted(): finished the collection of data.");
                 subscriber.onCompleted();
             }
 

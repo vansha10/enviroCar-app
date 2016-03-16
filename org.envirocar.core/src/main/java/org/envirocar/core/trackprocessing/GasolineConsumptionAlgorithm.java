@@ -1,18 +1,18 @@
 /**
  * Copyright (C) 2013 - 2015 the enviroCar community
- *
+ * <p>
  * This file is part of the enviroCar app.
- *
+ * <p>
  * The enviroCar app is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published
  * by the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * The enviroCar app is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
  * Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License along
  * with the enviroCar app. If not, see http://www.gnu.org/licenses/.
  */
@@ -27,8 +27,7 @@ import org.envirocar.core.exception.UnsupportedFuelTypeException;
  *
  * @author dewall
  */
-public class GasolineConsumptionAlgorithm implements ConsumptionAlgorithm {
-
+public class GasolineConsumptionAlgorithm extends ConsumptionAlgorithm {
 
     @Override
     public double calculateConsumption(Measurement measurement) throws FuelConsumptionException,
@@ -51,4 +50,5 @@ public class GasolineConsumptionAlgorithm implements ConsumptionAlgorithm {
     public double calculateCO2FromConsumption(double consumption) throws FuelConsumptionException {
         return consumption * 2.35; //kg/h
     }
+
 }

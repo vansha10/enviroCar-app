@@ -30,7 +30,7 @@ import static org.envirocar.core.entity.Measurement.PropertyKey.*;
  * <pre>lambda ER = 0.23478 / ( 0.218911 - 0.18415 * lambda_voltage )</pre>
  *
  */
-public class DieselConsumptionAlgorithm implements ConsumptionAlgorithm {
+public class DieselConsumptionAlgorithm extends ConsumptionAlgorithm {
 
     private static final Logger LOG = Logger.getLogger(DieselConsumptionAlgorithm.class);
 
