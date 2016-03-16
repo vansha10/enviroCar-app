@@ -54,6 +54,7 @@ import org.envirocar.core.trackprocessing.ConsumptionAlgorithm;
 import org.envirocar.core.utils.CarUtils;
 import org.envirocar.obd.ConnectionListener;
 import org.envirocar.obd.OBDController;
+import org.envirocar.obd.OBDSchedulers;
 import org.envirocar.obd.bluetooth.BluetoothSocketWrapper;
 import org.envirocar.obd.events.BluetoothServiceStateChangedEvent;
 import org.envirocar.obd.events.SpeedUpdateEvent;
@@ -328,6 +329,26 @@ public class OBDConnectionService extends BaseInjectorService {
                     }
                 }
             }, bus);
+            this.mOBDController.getObservable()
+                    .subscribeOn(OBDSchedulers.scheduler())
+                    .observeOn(OBDSchedulers.scheduler())
+                    .lift(measurementProvider.getOBDValueConsumer())
+                    .subscribe(new Subscriber<Measurement>() {
+                        @Override
+                        public void onCompleted() {
+                            LOG.info("damn");
+                        }
+
+                        @Override
+                        public void onError(Throwable e) {
+                            LOG.info("damn2");
+                        }
+
+                        @Override
+                        public void onNext(Measurement measurement) {
+                            LOG.info("damn3");
+                        }
+                    });
         } catch (IOException e) {
             LOG.warn(e.getMessage(), e);
             stopSelf();

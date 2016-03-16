@@ -46,6 +46,7 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 
+import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.Subscription;
@@ -75,7 +76,7 @@ public class OBDController {
     private boolean userRequestedStop = false;
     private Bus eventBus;
     private Scheduler.Worker eventBusWorker;
-
+    public Subscriber subscriber;
     /**
      * Default Constructor.
      *
@@ -105,8 +106,8 @@ public class OBDController {
         this.connectionListener = Preconditions.checkNotNull(cl);
         this.deviceName = Preconditions.checkNotNull(deviceName);
 
-        setupAdapterCandidates();
-        startPreferredAdapter();
+//        setupAdapterCandidates();
+//        startPreferredAdapter();
 
         this.eventBus = bus;
         if (this.eventBus != null) {
@@ -123,6 +124,17 @@ public class OBDController {
         adapterCandidates.offer(new CarTrendAdapter());
         adapterCandidates.offer(new AposW3Adapter());
         adapterCandidates.offer(new DriveDeckSportAdapter());
+    }
+
+    public Observable<PropertyKeyEvent> getObservable() {
+        return Observable.create(new Observable.OnSubscribe<PropertyKeyEvent>() {
+            @Override
+            public void call(Subscriber<? super PropertyKeyEvent> sub) {
+                subscriber = sub;
+                setupAdapterCandidates();
+                startPreferredAdapter();
+            }
+        });
     }
 
     /**
@@ -285,10 +297,15 @@ public class OBDController {
         eventBusWorker.schedule(() -> {
             PropertyKeyEvent[] pkes = createEventsFromDataResponse(dataResponse);
 
-            for (PropertyKeyEvent pke : pkes) {
-                eventBus.post(pke);
-            }
+//            for (PropertyKeyEvent pke : pkes) {
+//                eventBus.post(pke);
+//            }
 
+            if (subscriber != null) {
+                for (PropertyKeyEvent pke : pkes) {
+                    subscriber.onNext(pke);
+                }
+            }
             PID pid = dataResponse.getPid();
             if (pid == PID.SPEED) {
                 eventBus.post(new SpeedUpdateEvent(dataResponse.getValue().intValue()));

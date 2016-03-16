@@ -32,9 +32,29 @@ public class InterpolationMeasurementProvider extends AbstractMeasurementProvide
     private long firstTimestampToBeConsidered;
     private long lastTimestampToBeConsidered;
 
+    @Override
+    public Observable.Operator<Measurement, PropertyKeyEvent> getOBDValueConsumer() {
+        return subscriber -> new Subscriber<PropertyKeyEvent>() {
+            @Override
+            public void onCompleted() {
+                subscriber.onCompleted();
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                subscriber.onError(e);
+            }
+
+            @Override
+            public void onNext(PropertyKeyEvent pke) {
+                consider(pke);
+            }
+        };
+    }
+
     /*
-     * TODO implement listing for GPS DOP Events
-     */
+         * TODO implement listing for GPS DOP Events
+         */
     @Override
     public Observable<Measurement> measurements(long samplingRate) {
         return Observable.create(new Observable.OnSubscribe<Measurement>() {
@@ -216,7 +236,7 @@ public class InterpolationMeasurementProvider extends AbstractMeasurementProvide
     }
 
     @Override
-    @Subscribe
+//    @Subscribe
     public synchronized void consider(PropertyKeyEvent pke) {
         updateTimestamps(pke);
 
