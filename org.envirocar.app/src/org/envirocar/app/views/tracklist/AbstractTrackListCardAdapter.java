@@ -24,8 +24,12 @@ import android.os.AsyncTask;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.text.Layout;
 import android.view.View;
+import android.view.animation.RotateAnimation;
+import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.github.jorgecastilloprz.FABProgressCircle;
@@ -69,6 +73,8 @@ public abstract class AbstractTrackListCardAdapter<E extends
     protected static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance();
     protected static final DateFormat UTC_DATE_FORMATTER = new SimpleDateFormat("HH:mm:ss", Locale
             .ENGLISH);
+
+    private boolean isExpanded = false;
 
     static {
         UTC_DATE_FORMATTER.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -179,6 +185,7 @@ public abstract class AbstractTrackListCardAdapter<E extends
             }
         }
 
+
         holder.mToolbar.setOnMenuItemClickListener(item -> {
             LOG.info("Item clicked for track " + track.getTrackID());
 
@@ -205,8 +212,28 @@ public abstract class AbstractTrackListCardAdapter<E extends
             LOG.info("Clicked on the map. Navigate to the details activity");
             mTrackInteractionCallback.onTrackDetailsClicked(track, holder.mMapView);
         });
+        holder.expandButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                RotateAnimation rotateAnimation;
+                int ROTATED_POSITION = 180, INITIAL_POSITION = 0;
+                if(isExpanded){
+                    rotateAnimation = new RotateAnimation(ROTATED_POSITION, INITIAL_POSITION,
+                            RotateAnimation.RELATIVE_TO_SELF, 0.5f, RotateAnimation.RELATIVE_TO_SELF, 0.5f);
+                    holder.expandedLayout.setVisibility(View.GONE);
+                    isExpanded = false;
+                } else{
+                    rotateAnimation = new RotateAnimation(INITIAL_POSITION, ROTATED_POSITION,
+                            RotateAnimation.RELATIVE_TO_SELF, 0.5f, RotateAnimation.RELATIVE_TO_SELF, 0.5f);
+                    holder.expandedLayout.setVisibility(View.VISIBLE);
+                    isExpanded = true;
+                }
+                rotateAnimation.setDuration(200);
+                rotateAnimation.setFillAfter(true);
+                holder.expandButton.startAnimation(rotateAnimation);
+            }
+        });
     }
-
 
     /**
      * Initializes the MapView, its base layers and settings.
@@ -286,6 +313,10 @@ public abstract class AbstractTrackListCardAdapter<E extends
         protected MapView mMapView;
         @BindView(R.id.fragment_tracklist_cardlayout_invis_mapbutton)
         protected ImageButton mInvisMapButton;
+        @BindView(R.id.expand_button)
+        protected Button expandButton;
+        @BindView(R.id.expanded_layout)
+        protected LinearLayout expandedLayout;
 
         /**
          * Constructor.
